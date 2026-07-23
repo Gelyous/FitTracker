@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FitTracker Pro - Олег</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --фон-главный: #060913;
+            --фон-карта: rgba(10, 22, 44, 0.8);
+            --неон-зеленый: #00ff87;
+            --неон-голубой: #00f2fe;
+            --текст-главный: #ffffff;
+            --текст-затененный: #708099;
+            --граница: rgba(0, 242, 254, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--фон-главный);
+            background-image: radial-gradient(circle at 50% 0%, #0c2340 0%, #060913 70%);
+            color: var(--текст-главный);
+            min-height: 100vh;
+            padding-bottom: 90px;
+            overflow-x: hidden;
+        }
+
+        .шапка {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--граница);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(6, 9, 19, 0.85);
+        }
+
+        .шапка h1 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            color: var(--неон-зеленый);
+            text-shadow: 0 0 12px rgba(0, 255, 135, 0.3);
+            margin-left: 70px; /* Отступ для предотвращения перекрытия логотипом Gemini */
+            transition: margin 0.3s ease;
+        }
+
+        .облако-статус {
+            background: rgba(0, 255, 135, 0.1);
+            border: 1px solid var(--неон-зеленый);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: var(--неон-зеленый);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 0 10px rgba(0, 255, 135, 0.2);
+        }
+
+        .контейнер {
+            max-width: 1650px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .сетка-дашборда {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .сетка-дашборда {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .сетка-дашборда {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 25px;
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .сетка-дашборда {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 25px;
+            }
+        }
+
+        .стекло-карта {
+            background: var(--фон-карта);
+            border: 1px solid var(--граница);
+            border-radius: 20px;
+            padding: 22px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        @media (min-width: 1024px) {
+            .шапка h1 {
+                font-size: 1.5rem;
+            }
+
+            .стекло-карта {
+                padding: 30px;
+                border-radius: 24px;
+                min-height: 250px;
+            }
+
+            .заголовок-карты {
+                font-size: 1.05rem;
+                margin-bottom: 20px;
+            }
+
+            .холст-контейнер {
+                width: 160px;
+                height: 160px;
+            }
+
+            .круг-индикатор {
+                width: 125px;
+                height: 125px;
+            }
+
+            .круг-значение {
+                font-size: 1.4rem;
+            }
+
+            .легенда-строка {
+                font-size: 1.05rem;
+            }
+
+            .градиент-линия {
+                height: 28px;
+                border-radius: 14px;
+            }
+
+            .ползунок-маркер {
+                height: 30px;
+                width: 8px;
+            }
+        }
+
+        .заголовок-карты {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--текст-затененный);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+        }
+
+        .заголовок-карты i {
+            color: var(--неон-голубой);
+        }
+
+        .шкала-контейнер {
+            margin: 15px 0;
+            position: relative;
+        }
+
+        .градиент-линия {
+            height: 22px;
+            border-radius: 11px;
+            background: linear-gradient(to right, #4a0e17 0%, #00ff87 50%, #ff4757 100%);
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.1);
+            overflow: hidden;
+        }
+
+        .ползунок-маркер {
+            position: absolute;
+            top: -1px;
+            width: 6px;
+            height: 24px;
+            background: #ffffff;
+            box-shadow: 0 0 10px #ffffff, 0 0 5px var(--неон-голубой);
+            border-radius: 3px;
+            transition: left 0.3s ease;
+        }
+
+        .бжу-блок {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+
+        .холст-контейнер {
+            width: 120px;
+            height: 120px;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .бжу-легенда {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+        }
+
+        .легенда-строка {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .маркер-цвета {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .кольцо-блок {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            text-align: center;
+        }
+
+        .круг-индикатор {
+            position: relative;
+            width: 90px;
+            height: 90px;
+        }
+
+        .круг-индикатор svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .круг-значение {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.1rem;
+            font-weight: 800;
+        }
+
+        .сетка-упражнений {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+        @media (min-width: 600px) {
+            .сетка-упражнений {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .поле-ввода {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--граница);
+            border-radius: 10px;
+            padding: 10px 12px;
+            color: #ffffff;
+            width: 100%;
+            font-size: 0.95rem;
+            transition: border 0.2s;
+        }
+
+        .поле-ввода:focus {
+            outline: none;
+            border-color: var(--неон-голубой);
+        }
+
+        button.кнопка {
+            background: linear-gradient(135deg, var(--неон-зеленый) 0%, #00b35c 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            color: #060913;
+            font-weight: 800;
+            font-size: 0.95rem;
+            cursor: pointer;
+            width: 100%;
+            box-shadow: 0 4px 15px rgba(0, 255, 135, 0.3);
+        }
+
+        .навигация {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 22, 44, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--граница);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            z-index: 1000;
+        }
+
+        .пункт-меню {
+            background: none;
+            border: none;
+            color: var(--текст-затененный);
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            width: 60px;
+        }
+
+        .пункт-меню i {
+            font-size: 1.2rem;
+        }
+
+        .пункт-меню.актив {
+            color: var(--неон-зеленый);
+            text-shadow: 0 0 10px rgba(0, 255, 135, 0.5);
+        }
+
+        .вкладка-контент {
+            display: none;
+        }
+
+        .вкладка-контент.актив {
+            display: block;
+        }
+
+        .текст-отчета {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--граница);
+            border-radius: 10px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            margin-bottom: 15px;
+            color: #c4d1e6;
+        }
+
+        .модалка {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+        .модалка.открыта { display: flex; }
+
+        #уведомление-тост {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: rgba(10, 22, 44, 0.95);
+            border: 1px solid var(--неон-зеленый);
+            color: var(--текст-главный);
+            padding: 12px 20px;
+            border-radius: 14px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0, 255, 135, 0.3);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="уведомление-тост">
+        <i id="тост-иконка" class="fa-solid fa-circle-check" style="color: var(--неон-зеленый);"></i>
+        <span id="тост-текст">Сообщение</span>
+    </div>
+
+    <div class="шапка">
+        <h1>Здравия желаю, Олег</h1>
+        <div class="облако-статус" onclick="открытьОблако()">
+            <i class="fa-solid fa-cloud"></i> <span id="код-облака">Синхронизация</span>
+        </div>
+    </div>
+
+    <div class="контейнер">
+        
+        <div id="вкл-дашборд" class="вкладка-контент актив">
+            <div class="сетка-дашборда">
+                
+                <!-- Контроль веса -->
+                <div class="стекло-карта">
+                    <div class="заголовок-карты"><i class="fa-solid fa-weight-scale"></i> Контроль массы тела</div>
+                    <div style="font-size: 2.8rem; font-weight: 800; text-align: center; margin: 15px 0;">
+                        <span id="показ-вес">115</span> кг
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.95rem; color: var(--текст-затененный);">
+                        <span>Старт: 115 кг</span>
+                        <span style="color: var(--неон-зеленый); font-weight: bold;">Цель: 85 кг</span>
+                    </div>
+                </div>
+
+                <!-- Шкала калорий -->
+                <div class="стекло-карта">
+                    <div class="заголовок-карты"><i class="fa-solid fa-gauge-high"></i> Баланс энергии (Калории)</div>
+                    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                        <span style="font-size: 2.2rem; font-weight: 800;" id="показ-калории-факт">0</span>
+                        <span style="color: var(--текст-затененный); font-size: 1rem;">План: <span id="показ-калории-план">2100</span> ккал</span>
+                    </div>
+                    
+                    <div class="шкала-контейнер">
+                        <div class="градиент-линия">
+                            <div class="ползунок-маркер" id="маркер-калорий" style="left: 50%;"></div>
+                        </div>
+                    </div>
+                    <div style="text-align: center; font-size: 0.95rem; font-weight: bold;" id="статус-дефицита">В пределах нормы</div>
+                </div>
+
+                <!-- Диаграмма БЖУ -->
+                <div class="стекло-карта">
+                    <div class="заголовок-карты"><i class="fa-solid fa-chart-pie"></i> Пропорции нутриентов (БЖУ)</div>
+                    <div class="бжу-блок">
+                        <div class="холст-контейнер">
+                            <canvas id="диаграммаБжу"></canvas>
+                        </div>
+                        <div class="бжу-легенда">
+                            <div class="легенда-строка">
+                                <span><span class="маркер-цвета" style="background:#00ff87"></span>Белки</span>
+                                <span id="легенда-б">0г</span>
+                            </div>
+                            <div class="легенда-строка">
+                                <span><span class="маркер-цвета" style="background:#00f2fe"></span>Жиры</span>
+                                <span id="легенда-ж">0г</span>
+                            </div>
+                            <div class="легенда-строка">
+                                <span><span class="маркер-цвета" style="background:#ff4757"></span>Угл.</span>
+                                <span id="легенда-у">0г</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Шаги и Сон -->
+                <div class="стекло-карта">
+                    <div class="заголовок-карты"><i class="fa-solid fa-person-walking"></i> Шаги и Сон</div>
+                    <div class="кольцо-блок">
+                        <div>
+                            <div class="круг-индикатор">
+                                <svg viewBox="0 0 90 90" style="width:100%; height:100%;"><circle cx="45" cy="45" r="36" stroke="rgba(255,255,255,0.08)" stroke-width="7" fill="none"/>
+                                <circle id="кольцо-шагов" cx="45" cy="45" r="36" stroke="var(--неон-голубой)" stroke-width="7" fill="none" stroke-dasharray="226" stroke-dashoffset="226"/></svg>
+                                <div class="круг-значение" id="круг-шаги-текст">0</div>
+                            </div>
+                            <div style="font-size:0.85rem; margin-top:8px; color:var(--текст-затененный); font-weight:bold;">Шаги</div>
+                        </div>
+                        <div>
+                            <div class="круг-индикатор">
+                                <svg viewBox="0 0 90 90" style="width:100%; height:100%;"><circle cx="45" cy="45" r="36" stroke="rgba(255,255,255,0.08)" stroke-width="7" fill="none"/>
+                                <circle id="кольцо-сна" cx="45" cy="45" r="36" stroke="var(--неон-зеленый)" stroke-width="7" fill="none" stroke-dasharray="226" stroke-dashoffset="226"/></svg>
+                                <div class="круг-значение" id="круг-сон-текст">0ч</div>
+                            </div>
+                            <div style="font-size:0.85rem; margin-top:8px; color:var(--текст-затененный); font-weight:bold;">Сон (Индекс: <span id="круг-индекс-сна">-</span>)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Силовые показатели (Виджет на Дашборде) -->
+                <div class="стекло-карта">
+                    <div class="заголовок-карты"><i class="fa-solid fa-dumbbell"></i> Силовые показатели</div>
+                    <div id="дашборд-силовые-список" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 5px;">
+                        <!-- Заполняется динамически -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="вкл-ввод" class="вкладка-контент">
+            <div class="стекло-карта">
+                <div class="заголовок-карты"><i class="fa-solid fa-pen-to-square"></i> Ввод результатов за день</div>
+                
+                <div style="margin-bottom: 15px; background: rgba(0, 242, 254, 0.05); padding: 12px; border-radius: 12px; border: 1px solid var(--граница);">
+                    <label style="font-size:0.85rem; color:var(--неон-голубой); font-weight:700; display:block; margin-bottom:6px;">
+                        <i class="fa-regular fa-calendar-days"></i> Дата отчета:
+                    </label>
+                    <input type="date" id="ввод-дата" class="поле-ввода" style="color-scheme: dark; font-weight:bold;" onchange="загрузитьДанныеНаДату()">
+                </div>
+
+                <!-- Единый ИИ-блок ввода питания -->
+                <div style="background: rgba(0, 242, 254, 0.05); border: 1px dashed var(--неон-голубой); border-radius: 14px; padding: 15px; margin-bottom: 18px;">
+                    <div style="font-size: 0.95rem; color: var(--неон-голубой); font-weight: 700; margin-bottom: 8px; display:flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Умный учет питания (ИИ Gemini)
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--текст-затененный); margin-bottom: 12px;">
+                        Опишите словами, что вы съели, или загрузите фото/чек — ИИ сам определит и занесет КБЖУ.
+                    </p>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="font-size:0.8rem; color:var(--текст-затененный); display:block; margin-bottom:4px;">Что вы съели?</label>
+                        <textarea id="ввод-текст-еды" class="поле-ввода" rows="3" placeholder="Например: Скушал 2 вареных яйца, овсянку на молоке 250г и кофе с сахаром..."></textarea>
+                    </div>
+
+                    <input type="file" id="ввод-фото-еды" accept="image/*" style="display:none;" onchange="обработатьВыборФото(event)">
+                    
+                    <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                        <button class="кнопка" type="button" style="background: rgba(0, 242, 254, 0.1); border: 1px solid var(--неон-голубой); color: var(--неон-голубой); box-shadow: none; padding: 10px; font-size: 0.85rem;" onclick="document.getElementById('ввод-фото-еды').click()">
+                            <i class="fa-solid fa-camera"></i> Прикрепить фото / чек
+                        </button>
+                        <button id="кнопка-очистить-фото" class="кнопка" type="button" style="display:none; background: rgba(255, 71, 87, 0.1); border: 1px solid #ff4757; color: #ff4757; box-shadow: none; padding: 10px; font-size: 0.85rem; width: auto;" onclick="сброситьФото()">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <div id="превью-контейнер" style="display:none; margin-bottom: 12px; text-align:center;">
+                        <img id="превью-фото" style="max-width: 100%; max-height: 180px; border-radius: 10px; border: 1px solid var(--граница); object-fit: cover;" />
+                    </div>
+
+                    <button id="кнопка-анализ" class="кнопка" type="button" style="background: linear-gradient(135deg, var(--неон-голубой) 0%, #0088ff 100%); font-size: 0.9rem;" onclick="распознатьЕдуИИ()">
+                        <i class="fa-solid fa-brain"></i> Рассчитать КБЖУ с помощью ИИ
+                    </button>
+
+                    <div id="статус-анализа" style="font-size: 0.85rem; font-weight: 600; margin-top: 10px; display: none;"></div>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size:0.85rem; color:var(--текст-затененный); display:block; margin-bottom:4px;">Текущий вес (кг)</label>
+                    <input type="number" step="0.1" id="ввод-вес" class="поле-ввода" placeholder="115.0">
+                </div>
+
+                <!-- Скрытые поля для расчетов ИИ -->
+                <input type="hidden" id="ввод-б">
+                <input type="hidden" id="ввод-ж">
+                <input type="hidden" id="ввод-у">
+                <input type="hidden" id="ввод-ккал">
+
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size:0.85rem; color:var(--текст-затененный); display:block; margin-bottom:4px;">Пройдено шагов</label>
+                    <input type="number" id="ввод-шаги" class="поле-ввода" placeholder="5000">
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+                    <div>
+                        <label style="font-size:0.8rem; color:var(--текст-затененный);">Часы сна</label>
+                        <input type="number" step="0.5" id="ввод-сон" class="поле-ввода" placeholder="8">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:var(--текст-затененный);">Оценка сна (1-5)</label>
+                        <select id="ввод-оценка-сна" class="поле-ввода" style="background: #0a162c;">
+                            <option value="5">5 — Отлично</option>
+                            <option value="4">4 — Хорошо</option>
+                            <option value="3" selected>3 — Нормально</option>
+                            <option value="2">2 — Плохо</option>
+                            <option value="1">1 — Ужасно</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:15px;">
+                    <label style="font-size:0.8rem; color:var(--текст-затененный); display:block; margin-bottom:4px;">Заметки по самочувствию</label>
+                    <textarea id="ввод-заметки" class="поле-ввода" rows="2" placeholder="Заметки по еде, тренировке, усталости..."></textarea>
+                </div>
+
+                <button class="кнопка" onclick="сохранитьДневник()"><i class="fa-solid fa-check"></i> Сохранить отчет за выбранную дату</button>
+            </div>
+        </div>
+
+        <div id="вкл-силовые" class="вкладка-контент">
+            <div class="стекло-карта">
+                <div class="заголовок-карты"><i class="fa-solid fa-dumbbell"></i> Дневник силовых показателей</div>
+                
+                <div class="сетка-упражнений" style="margin-bottom: 20px;">
+                    <div>
+                        <label style="font-size:0.8rem; color:var(--текст-затененный);">Жим штанги лежа (кг × повт)</label>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;"><input type="number" id="сил-жим-в" class="поле-ввода" placeholder="кг"><input type="number" id="сил-жим-п" class="поле-ввода" placeholder="повт"></div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:var(--текст-затененный);">Приседания со штангой (кг × повт)</label>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;"><input type="number" id="сил-присед-в" class="поле-ввода" placeholder="кг"><input type="number" id="сил-присед-п" class="поле-ввода" placeholder="повт"></div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:var(--текст-затененный);">Становая тяга (кг × повт)</label>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;"><input type="number" id="сил-тяга-в" class="поле-ввода" placeholder="кг"><input type="number" id="сил-тяга-п" class="поле-ввода" placeholder="повт"></div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:var(--текст-затененный);">Жим гантелей (кг × повт)</label>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;"><input type="number" id="сил-гант-в" class="поле-ввода" placeholder="кг"><input type="number" id="сил-гант-п" class="поле-ввода" placeholder="повт"></div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:var(--текст-затененный);">Тяга нижнего блока (кг × повт)</label>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;"><input type="number" id="сил-нижн-в" class="поле-ввода" placeholder="кг"><input type="number" id="сил-нижн-п" class="поле-ввода" placeholder="повт"></div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:var(--текст-затененный);">Тяга блока к поясу (кг × повт)</label>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;"><input type="number" id="сил-пояс-в" class="поле-ввода" placeholder="кг"><input type="number" id="сил-пояс-п" class="поле-ввода" placeholder="повт"></div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:var(--текст-затененный);">Тяга верхнего блока (кг × повт)</label>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;"><input type="number" id="сил-верх-в" class="поле-ввода" placeholder="кг"><input type="number" id="сил-верх-п" class="поле-ввода" placeholder="повт"></div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:var(--текст-затененный);">Армейский жим стоя (кг × повт)</label>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;"><input type="number" id="сил-арм-в" class="поле-ввода" placeholder="кг"><input type="number" id="сил-арм-п" class="поле-ввода" placeholder="повт"></div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:var(--текст-затененный);">Отжимания на брусьях (вес × повт)</label>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;"><input type="number" id="сил-брус-в" class="поле-ввода" placeholder="кг"><input type="number" id="сил-брус-п" class="поле-ввода" placeholder="повт"></div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem; color:var(--текст-затененный);">Сгибания на бицепс / Руки (кг × повт)</label>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;"><input type="number" id="сил-биц-в" class="поле-ввода" placeholder="кг"><input type="number" id="сил-биц-п" class="поле-ввода" placeholder="повт"></div>
+                    </div>
+                </div>
+
+                <button class="кнопка" onclick="сохранитьСиловые()"><i class="fa-solid fa-weight-hanging"></i> Сохранить силовые параметры</button>
+            </div>
+        </div>
+
+        <div id="вкл-отчет" class="вкладка-контент">
+            <div class="стекло-карта">
+                <div class="заголовок-карты"><i class="fa-solid fa-file-export"></i> Экспорт отчета ИИ-Тренеру</div>
+                <div class="текст-отчета" id="блок-отчета">Заполните данные для генерации отчета...</div>
+                <button class="кнопка" onclick="скопироватьОтчет()"><i class="fa-solid fa-copy"></i> Скопировать отчет для чата</button>
+            </div>
+        </div>
+
+        <div id="вкл-история" class="вкладка-контент">
+            <div class="стекло-карта">
+                <div class="заголовок-карты" style="justify-content: space-between;">
+                    <span><i class="fa-solid fa-clock-rotate-left"></i> История показателей и отчетов</span>
+                    <button class="кнопка" style="width: auto; padding: 6px 12px; font-size: 0.8rem;" onclick="сохранитьВИсторию()"><i class="fa-solid fa-plus"></i> Сохранить текущий день</button>
+                </div>
+                <p style="font-size: 0.85rem; color: var(--текст-затененный); margin-bottom: 15px;">
+                    Архив ваших ежедневных отчетов. Вы можете просмотреть динамику изменений за прошлые дни.
+                </p>
+                <div id="список-истории" style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Заполняется автоматически через JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div id="вкл-план" class="вкладка-контент">
+            <div class="стекло-карта">
+                <div class="заголовок-карты"><i class="fa-solid fa-sliders"></i> Корректировка плановых целей</div>
+                
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size:0.8rem; color:var(--текст-затененный);">Цель по калориям (ккал)</label>
+                    <input type="number" id="план-ккал" class="поле-ввода">
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-size:0.8rem; color:var(--текст-затененный);">Цель по шагам в день</label>
+                    <input type="number" id="план-шаги" class="поле-ввода">
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label style="font-size:0.8rem; color:var(--текст-затененный);">Цель по сну (часов)</label>
+                    <input type="number" id="план-сон" class="поле-ввода">
+                </div>
+
+                <button class="кнопка" onclick="сохранитьПлан()"><i class="fa-solid fa-floppy-disk"></i> Сохранить новый план</button>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="модалка" id="окно-облака">
+        <div class="стекло-карта" style="width:100%; max-width:400px;">
+            <div class="заголовок-карты"><i class="fa-solid fa-cloud-arrow-up"></i> Облачный ID аккаунта</div>
+            <p style="font-size:0.85rem; color:var(--текст-затененный); margin-bottom:12px;">Используйте этот код для входа с других устройств:</p>
+            <input type="text" id="поле-кода" class="поле-ввода" style="text-align:center; font-weight:bold; letter-spacing:1px; margin-bottom:15px;" readonly>
+            <div style="display:flex; gap:10px;">
+                <button class="кнопка" style="background:#55637d; color:#fff;" onclick="закрытьОблако()">Закрыть</button>
+                <button class="кнопка" onclick="navigator.clipboard.writeText(document.getElementById('поле-кода').value); показатьУведомление('ID скопирован в буфер!');">Копировать</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="модалка" id="окно-удаления">
+        <div class="стекло-карта" style="width:100%; max-width:380px; text-align:center;">
+            <div class="заголовок-карты" style="justify-content:center; color:#ff4757;">
+                <i class="fa-solid fa-trash-can"></i> Удаление отчета
+            </div>
+            <p style="font-size:0.9rem; color:var(--текст-затененный); margin-bottom:20px;" id="текст-подтверждения-удаления">
+                Вы уверены, что хотите удалить отчет за эту дату?
+            </p>
+            <div style="display:flex; gap:10px;">
+                <button class="кнопка" style="background:#55637d; color:#fff; box-shadow:none;" onclick="закрытьУдаление()">Отмена</button>
+                <button class="кнопка" style="background: linear-gradient(135deg, #ff4757 0%, #c0392b 100%); box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);" onclick="подтвердитьУдаление()">Удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="навигация">
+        <button class="пункт-меню актив" onclick="переключитьВкладку('дашборд')"><i class="fa-solid fa-chart-simple"></i>Обзор</button>
+        <button class="пункт-меню" onclick="переключитьВкладку('ввод')"><i class="fa-solid fa-plus"></i>Ввод</button>
+        <button class="пункт-меню" onclick="переключитьВкладку('силовые')"><i class="fa-solid fa-dumbbell"></i>Сила</button>
+        <button class="пункт-меню" onclick="переключитьВкладку('отчет')"><i class="fa-solid fa-share-nodes"></i>Отчет</button>
+        <button class="пункт-меню" onclick="переключитьВкладку('история')"><i class="fa-solid fa-clock-rotate-left"></i>История</button>
+        <button class="пункт-меню" onclick="переключитьВкладку('план')"><i class="fa-solid fa-gear"></i>План</button>
+    </nav>
+
+    <script>
+        let база = JSON.parse(localStorage.getItem('FitTrackerOlegData')) || {
+            план: { ккал: 2100, шаги: 5000, сон: 8, стартВес: 115, цельВес: 85 },
+            факт: { вес: 115, ккал: 0, б: 0, ж: 0, у: 0, шаги: 0, сон: 0, индексСна: 3, заметки: "" },
+            силовые: { жимВ:0, жимП:0, приседВ:0, приседП:0, тягаВ:0, тягаП:0, гантВ:0, гантП:0, нижнВ:0, нижнП:0, поясВ:0, поясП:0, верхВ:0, верхП:0, армВ:0, армП:0, брусВ:0, брусП:0, бицВ:0, бицП:0 },
+            история: [],
+            облакоИд: "OLEG-" + Math.random().toString(36).substr(2, 6).toUpperCase()
+        };
+
+        let графикБжу = null;
+        let выбраннаяКартинкаBase64 = null;
+        let удаляемыйDateKey = null;
+
+        function показатьУведомление(текст, тип = 'успех') {
+            const тост = document.getElementById('уведомление-тост');
+            const тостТекст = document.getElementById('тост-текст');
+            const тостИконка = document.getElementById('тост-иконка');
+            if (!тост) return;
+            
+            тостТекст.innerText = текст;
+            if (тип === 'ошибка') {
+                тост.style.borderColor = '#ff4757';
+                тостИконка.className = 'fa-solid fa-circle-exclamation';
+                тостИконка.style.color = '#ff4757';
+            } else {
+                тост.style.borderColor = 'var(--неон-зеленый)';
+                тостИконка.className = 'fa-solid fa-circle-check';
+                тостИконка.style.color = 'var(--неон-зеленый)';
+            }
+            тост.style.display = 'flex';
+            setTimeout(() => { тост.style.display = 'none'; }, 3000);
+        }
+
+        window.onload = function() {
+            // Установка текущей даты по умолчанию
+            const сегодня = new Date().toISOString().split('T')[0];
+            const полеДаты = document.getElementById('ввод-дата');
+            if (полеДаты) полеДаты.value = сегодня;
+
+            инициализироватьДанные();
+            обновитьИнтерфейс();
+        };
+
+        function обработатьВыборФото(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                выбраннаяКартинкаBase64 = e.target.result;
+                document.getElementById('превью-фото').src = выбраннаяКартинкаBase64;
+                document.getElementById('превью-контейнер').style.display = 'block';
+                document.getElementById('кнопка-очистить-фото').style.display = 'inline-block';
+                const статус = document.getElementById('статус-анализа');
+                статус.style.display = 'block';
+                статус.style.color = 'var(--текст-затененный)';
+                статус.innerText = 'Фото прикреплено. Нажмите «Рассчитать КБЖУ с помощью ИИ».';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function сброситьФото() {
+            выбраннаяКартинкаBase64 = null;
+            document.getElementById('ввод-фото-еды').value = '';
+            document.getElementById('превью-контейнер').style.display = 'none';
+            document.getElementById('кнопка-очистить-фото').style.display = 'none';
+            document.getElementById('статус-анализа').style.display = 'none';
+        }
+
+        async function распознатьЕдуИИ() {
+            const текстЕды = document.getElementById('ввод-текст-еды').value.trim();
+
+            if (!выбраннаяКартинкаBase64 && !текстЕды) {
+                показатьУведомление("Напишите текст еды или прикрепите фото!", 'ошибка');
+                return;
+            }
+
+            const статус = document.getElementById('статус-анализа');
+            const кнопка = document.getElementById('кнопка-анализ');
+            
+            статус.style.display = 'block';
+            статус.style.color = 'var(--неон-голубой)';
+            статус.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ИИ определяет состав и рассчитывает КБЖУ...';
+            кнопка.disabled = true;
+
+            try {
+                let parts = [];
+                let инструкция = "Проанализируй описание еды и/или фото блюда/чека. Рассчитай суммарный КБЖУ (Калории, Белки, Жиры, Углеводы в граммах) для описанного объема пищи. Верни ответ строго в формате JSON: {\"dish_name\": \"Краткое название блюда или продуктов\", \"calories\": число, \"protein\": число, \"fat\": число, \"carbs\": число}";
+
+                if (текстЕды) {
+                    инструкция += `\nОписание еды пользователем: "${текстЕды}"`;
+                }
+
+                parts.push({ text: инструкция });
+
+                if (выбраннаяКартинкаBase64) {
+                    const base64Data = выбраннаяКартинкаBase64.split(',')[1];
+                    const mimeType = выбраннаяКартинкаBase64.split(';')[0].split(':')[1] || 'image/jpeg';
+                    parts.push({
+                        inlineData: {
+                            mimeType: mimeType,
+                            data: base64Data
+                        }
+                    });
+                }
+
+                const payload = {
+                    contents: [{ role: "user", parts: parts }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "dish_name": { "type": "STRING" },
+                                "calories": { "type": "NUMBER" },
+                                "protein": { "type": "NUMBER" },
+                                "fat": { "type": "NUMBER" },
+                                "carbs": { "type": "NUMBER" }
+                            },
+                            required: ["dish_name", "calories", "protein", "fat", "carbs"]
+                        }
+                    }
+                };
+
+                const result = await вызовGeminiСПовторами(payload);
+                const candidateText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (!candidateText) {
+                    throw new Error("Не удалось разобрать ответ от ИИ.");
+                }
+
+                const parsed = JSON.parse(candidateText);
+
+                const protein = Math.round(parsed.protein || 0);
+                const fat = Math.round(parsed.fat || 0);
+                const carbs = Math.round(parsed.carbs || 0);
+                const calories = Math.round(parsed.calories || (protein * 4 + fat * 9 + carbs * 4));
+
+                document.getElementById('ввод-б').value = protein;
+                document.getElementById('ввод-ж').value = fat;
+                document.getElementById('ввод-у').value = carbs;
+                document.getElementById('ввод-ккал').value = calories;
+
+                // Добавление к текущему дню
+                база.факт.б = (база.факт.б || 0) + protein;
+                база.факт.ж = (база.факт.ж || 0) + fat;
+                база.факт.у = (база.факт.у || 0) + carbs;
+                база.факт.ккал = (база.факт.ккал || 0) + calories;
+
+                const заметкиПоле = document.getElementById('ввод-заметки');
+                const записьОБлюде = `${parsed.dish_name || 'Прием пищи'} (+${calories} ккал, Б:${protein}г, Ж:${fat}г, У:${carbs}г)`;
+                if (заметкиПоле.value) {
+                    заметкиПоле.value += ` | ${записьОБлюде}`;
+                } else {
+                    заметкиПоле.value = записьОБлюде;
+                }
+                база.факт.заметки = заметкиПоле.value;
+
+                localStorage.setItem('FitTrackerOlegData', JSON.stringify(база));
+                обновитьИнтерфейс();
+                сохранитьВИсторию();
+
+                статус.style.color = 'var(--неон-зеленый)';
+                статус.innerHTML = `<i class="fa-solid fa-circle-check"></i> Зафиксировано: <b>${parsed.dish_name}</b> (+${calories} ккал / Б:${protein}г Ж:${fat}г У:${carbs}г)`;
+
+            } catch (err) {
+                console.error(err);
+                статус.style.color = '#ff4757';
+                статус.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Ошибка расчетов. Проверьте соединение и попробуйте еще раз.';
+            } finally {
+                кнопка.disabled = false;
+            }
+        }
+
+        async function вызовGeminiСПовторами(payload) {
+            const apiKey = "";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+            let delay = 1000;
+
+            for (let attempt = 0; attempt < 3; attempt++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                    return await response.json();
+                } catch (e) {
+                    if (attempt === 2) throw e;
+                    await new Promise(r => setTimeout(r, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        function инициализироватьДанные() {
+            if (!база.история) база.история = [];
+            
+            if (база.история.length === 0) {
+                база.история = [
+                    {
+                        dateStr: "22 Июля 2026",
+                        dateKey: "2026-07-22",
+                        вес: 115.0,
+                        ккал: 2050,
+                        б: 160, ж: 70, у: 195,
+                        шаги: 5200,
+                        сон: 7.5,
+                        индексСна: 4,
+                        заметки: "Старт программы. Силовая тренировка верха."
+                    }
+                ];
+            }
+
+            document.getElementById('код-облака').innerText = база.облакоИд;
+            document.getElementById('поле-кода').value = база.облакоИд;
+
+            document.getElementById('план-ккал').value = база.план.ккал;
+            document.getElementById('план-шаги').value = база.план.шаги;
+            document.getElementById('план-сон').value = база.план.сон;
+
+            загрузитьДанныеНаДату();
+
+            for (let ключ in база.силовые) {
+                let эл = document.getElementById('сил-' + ключ);
+                if(эл) эл.value = база.силовые[ключ] || "";
+            }
+        }
+
+        function загрузитьДанныеНаДату() {
+            const выбраннаяДата = document.getElementById('ввод-дата')?.value || new Date().toISOString().split('T')[0];
+            const запись = база.история.find(item => item.dateKey === выбраннаяДата);
+
+            if (запись) {
+                document.getElementById('ввод-вес').value = запись.вес || "";
+                document.getElementById('ввод-ккал').value = запись.ккал || "";
+                document.getElementById('ввод-б').value =  запись.б || "";
+                document.getElementById('ввод-ж').value =  запись.ж || "";
+                document.getElementById('ввод-у').value =  запись.у || "";
+                document.getElementById('ввод-шаги').value = запись.шаги || "";
+                document.getElementById('ввод-сон').value = запись.сон || "";
+                document.getElementById('ввод-оценка-сна').value = запись.индексСна || 3;
+                document.getElementById('ввод-заметки').value = запись.заметки || "";
+            } else if (выбраннаяДата === new Date().toISOString().split('T')[0]) {
+                document.getElementById('ввод-вес').value = база.факт.вес || "";
+                document.getElementById('ввод-ккал').value = база.факт.ккал || "";
+                document.getElementById('ввод-б').value =  база.факт.б || "";
+                document.getElementById('ввод-ж').value =  база.факт.ж || "";
+                document.getElementById('ввод-у').value =  база.факт.у || "";
+                document.getElementById('ввод-шаги').value = база.факт.шаги || "";
+                document.getElementById('ввод-сон').value = база.факт.сон || "";
+                document.getElementById('ввод-оценка-сна').value = база.факт.индексСна || 3;
+                document.getElementById('ввод-заметки').value = база.факт.заметки || "";
+            } else {
+                document.getElementById('ввод-вес').value = "";
+                document.getElementById('ввод-ккал').value = "";
+                document.getElementById('ввод-б').value = "";
+                document.getElementById('ввод-ж').value = "";
+                document.getElementById('ввод-у').value = "";
+                document.getElementById('ввод-шаги').value = "";
+                document.getElementById('ввод-сон').value = "";
+                document.getElementById('ввод-оценка-сна').value = 3;
+                document.getElementById('ввод-заметки').value = "";
+            }
+        }
+
+        function обновитьИнтерфейс() {
+            document.getElementById('показ-вес').innerText = база.факт.вес;
+            document.getElementById('показ-калории-план').innerText = база.план.ккал;
+            document.getElementById('показ-калории-факт').innerText = база.факт.ккал;
+
+            let маркер = document.getElementById('маркер-калорий');
+            let статус = document.getElementById('статус-дефицита');
+            let процент = 50;
+
+            if (база.факт.ккал < база.план.ккал) {
+                let откл = ((база.план.ккал - база.факт.ккал) / база.план.ккал) * 50;
+                процент = Math.max(5, 50 - откл);
+                статус.innerText = "Дефицит сохранен";
+                статус.style.color = "#00ff87";
+            } else if (база.факт.ккал > база.план.ккал) {
+                let откл = ((база.факт.ккал - база.план.ккал) / база.план.ккал) * 50;
+                процент = Math.min(95, 50 + откл);
+                статус.innerText = "Превышение плана";
+                статус.style.color = "#ff4757";
+            } else {
+                процент = 50;
+                статус.innerText = "Идеальное попадание";
+                статус.style.color = "#fff";
+            }
+            маркер.style.left = процент + "%";
+
+            let рассчетШагов = Math.min(226, 226 - ((база.факт.шаги || 0) / база.план.шаги) * 226);
+            document.getElementById('кольцо-шагов').style.strokeDashoffset = рассчетШагов;
+            document.getElementById('круг-шаги-текст').innerText = база.факт.шаги || 0;
+
+            let рассчетСна = Math.min(226, 226 - ((база.факт.сон || 0) / база.план.сон) * 226);
+            document.getElementById('кольцо-сна').style.strokeDashoffset = рассчетСна;
+            document.getElementById('круг-сон-текст').innerText = (база.факт.сон || 0) + "ч";
+            document.getElementById('круг-индекс-сна').innerText = база.факт.индексСна || 3;
+
+            document.getElementById('легенда-б').innerText = (база.факт.б || 0) + "г";
+            document.getElementById('легенда-ж').innerText = (база.факт.ж || 0) + "г";
+            document.getElementById('легенда-у').innerText = (база.факт.у || 0) + "г";
+
+            // Обновление списка силовых на дашборде
+            let силКонтейнер = document.getElementById('дашборд-силовые-список');
+            if (силКонтейнер) {
+                const главные = [
+                    { k: 'жим', n: 'Жим лежа' },
+                    { k: 'присед', n: 'Приседания' },
+                    { k: 'тяга', n: 'Становая' },
+                    { k: 'арм', n: 'Армейский жим' }
+                ];
+                let html = '';
+                главные.forEach(ex => {
+                    let w = база.силовые[ex.k + 'В'] || 0;
+                    let p = база.силовые[ex.k + 'П'] || 0;
+                    html += `
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--граница); border-radius: 12px; padding: 10px 12px;">
+                            <div style="font-size: 0.8rem; color: var(--текст-затененный); font-weight: 600;">${ex.n}</div>
+                            <div style="font-size: 1.15rem; font-weight: 800; color: ${w > 0 ? 'var(--неон-зеленый)' : 'var(--текст-затененный)'}; margin-top: 4px;">
+                                ${w > 0 ? `${w} кг × ${p}` : '—'}
+                            </div>
+                        </div>
+                    `;
+                });
+                силКонтейнер.innerHTML = html;
+            }
+
+            строитьДиаграмму(база.факт.б, база.факт.ж, база.факт.у);
+            сгенерироватьТекстОтчета();
+            отобразитьИсторию();
+        }
+
+        function отобразитьИсторию() {
+            const контейнер = document.getElementById('список-истории');
+            if (!контейнер) return;
+
+            if (!база.история || база.история.length === 0) {
+                контейнер.innerHTML = '<div style="color:var(--текст-затененный); text-align:center; padding:20px;">Записи за прошлые дни отсутствуют</div>';
+                return;
+            }
+
+            // Сортировка по дате (свежие сверху)
+            база.история.sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+
+            let html = '';
+            база.история.forEach((rec) => {
+                html += `
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--граница); border-radius: 14px; padding: 15px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span style="font-weight:800; color:var(--неон-голубой); font-size:1rem;"><i class="fa-regular fa-calendar"></i> ${rec.dateStr}</span>
+                            <span style="font-weight:800; color:var(--неон-зеленый); font-size:1.1rem;">${rec.вес} кг</span>
+                        </div>
+                        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; font-size:0.85rem; background:rgba(0,0,0,0.2); padding:8px 12px; border-radius:8px; margin-bottom:8px;">
+                            <div>🔥 <b>${rec.ккал}</b> ккал</div>
+                            <div>🏃 <b>${rec.шаги}</b> шагов</div>
+                            <div>😴 <b>${rec.сон}ч</b> (Оценка: ${rec.индексСна}/5)</div>
+                        </div>
+                        <div style="font-size:0.8rem; color:var(--текст-затененный); margin-bottom:6px;">
+                            Б: <b style="color:#00ff87">${rec.б}г</b> | Ж: <b style="color:#00f2fe">${rec.ж}г</b> | У: <b style="color:#ff4757">${rec.у}г</b>
+                        </div>
+                        ${rec.заметки ? `<div style="font-size:0.8rem; color:#c4d1e6; font-style:italic; background:rgba(255,255,255,0.02); padding:6px 10px; border-radius:6px; border-left:2px solid var(--неон-голубой); margin-bottom:10px;"><i class="fa-solid fa-quote-left" style="font-size:0.65rem; color:var(--неон-голубой);"></i> ${rec.заметки}</div>` : ''}
+                        
+                        <div style="display:flex; gap:10px; border-top: 1px solid rgba(255,255,255,0.05); padding-top:10px;">
+                            <button class="кнопка" style="padding: 7px 12px; font-size: 0.8rem; background: rgba(0, 242, 254, 0.1); border: 1px solid var(--неон-голубой); color: var(--неон-голубой); box-shadow: none;" onclick="редактироватьОтчет('${rec.dateKey}')">
+                                <i class="fa-solid fa-pen-to-square"></i> Редактировать
+                            </button>
+                            <button class="кнопка" style="padding: 7px 12px; font-size: 0.8rem; background: rgba(255, 71, 87, 0.1); border: 1px solid #ff4757; color: #ff4757; box-shadow: none;" onclick="запроситьУдаление('${rec.dateKey}')">
+                                <i class="fa-solid fa-trash-can"></i> Удалить
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            контейнер.innerHTML = html;
+        }
+
+        function редактироватьОтчет(dateKey) {
+            const полеДаты = document.getElementById('ввод-дата');
+            if (полеДаты) полеДаты.value = dateKey;
+            загрузитьДанныеНаДату();
+            
+            // Переключение на вкладку ввода
+            document.querySelectorAll('.вкладка-контент').forEach(el => el.classList.remove('актив'));
+            document.querySelectorAll('.пункт-меню').forEach(el => el.classList.remove('актив'));
+            document.getElementById('вкл-ввод').classList.add('актив');
+            
+            // Активировать кнопку ввода
+            const кнопки = document.querySelectorAll('.пункт-меню');
+            if (кнопки[1]) кнопки[1].classList.add('актив');
+
+            показатьУведомление(`Загружен отчет за ${dateKey}`);
+        }
+
+        function запроситьУдаление(dateKey) {
+            удаляемыйDateKey = dateKey;
+            const запись = база.история.find(i => i.dateKey === dateKey);
+            const текст = запись ? `Вы действительно хотите удалить отчет за ${запись.dateStr}?` : 'Удалить этот отчет?';
+            document.getElementById('текст-подтверждения-удаления').innerText = текст;
+            document.getElementById('окно-удаления').classList.add('открыта');
+        }
+
+        function закрытьУдаление() {
+            document.getElementById('окно-удаления').classList.remove('открыта');
+            удаляемыйDateKey = null;
+        }
+
+        function подтвердитьУдаление() {
+            if (!удаляемыйDateKey) return;
+
+            база.история = база.история.filter(i => i.dateKey !== удаляемыйDateKey);
+            
+            // Если удалили сегодняшнюю дату - сбрасываем факт
+            const сегодня = new Date().toISOString().split('T')[0];
+            if (удаляемыйDateKey === сегодня) {
+                база.факт = { вес: база.факт.вес, ккал: 0, б: 0, ж: 0, у: 0, шаги: 0, сон: 0, индексСна: 3, заметки: "" };
+            }
+
+            localStorage.setItem('FitTrackerOlegData', JSON.stringify(база));
+            закрытьУдаление();
+            обновитьИнтерфейс();
+            показатьУведомление("Отчет успешно удален");
+        }
+
+        function переключитьВкладку(имяВкладки) {
+            document.querySelectorAll('.вкладка-контент').forEach(el => el.classList.remove('актив'));
+            document.querySelectorAll('.пункт-меню').forEach(el => el.classList.remove('актив'));
+            
+            document.getElementById('вкл-' + имяВкладки).classList.add('актив');
+            event.currentTarget.classList.add('актив');
+            
+            if(имяВкладки === 'отчет') сгенерироватьТекстОтчета();
+            if(имяВкладки === 'история') отобразитьИсторию();
+        }
+
+        function сохранитьПлан() {
+            база.план.ккал = parseInt(document.getElementById('план-ккал').value) || 2100;
+            база.план.шаги = parseInt(document.getElementById('план-шаги').value) || 5000;
+            база.план.сон = parseInt(document.getElementById('план-сон').value) || 8;
+            
+            localStorage.setItem('FitTrackerOlegData', JSON.stringify(база));
+            обновитьИнтерфейс();
+            показатьУведомление("План успешно сохранен!");
+        }
+
+        function сохранитьДневник() {
+            const датаЗначение = document.getElementById('ввод-дата')?.value || new Date().toISOString().split('T')[0];
+            const объектДаты = new Date(датаЗначение + 'T00:00:00');
+            const dateStr = объектДаты.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            const вес = parseFloat(document.getElementById('ввод-вес').value) || база.факт.вес;
+            let b = parseInt(document.getElementById('ввод-б').value) || 0;
+            let j = parseInt(document.getElementById('ввод-ж').value) || 0;
+            let u = parseInt(document.getElementById('ввод-у').value) || 0;
+            let ккал = 0;
+
+            if(b > 0 || j > 0 || u > 0) {
+                ккал = (b * 4) + (j * 9) + (u * 4);
+                document.getElementById('ввод-ккал').value = ккал;
+            } else {
+                ккал = parseInt(document.getElementById('ввод-ккал').value) || 0;
+            }
+
+            const шаги = parseInt(document.getElementById('ввод-шаги').value) || 0;
+            const сон = parseFloat(document.getElementById('ввод-сон').value) || 0;
+            const индексСна = parseInt(document.getElementById('ввод-оценка-сна').value) || 3;
+            const заметки = document.getElementById('ввод-заметки').value;
+
+            // Формируем новую запись
+            const запись = {
+                dateStr: dateStr,
+                dateKey: датаЗначение,
+                вес: вес,
+                ккал: ккал,
+                б: b, ж: j, у: u,
+                шаги: шаги,
+                сон: сон,
+                индексСна: индексСна,
+                заметки: заметки
+            };
+
+            // Обновление истории
+            if (!база.история) база.история = [];
+            const индекс = база.история.findIndex(item => item.dateKey === датаЗначение);
+            if (индекс >= 0) {
+                база.история[индекс] = запись;
+            } else {
+                база.история.unshift(запись);
+            }
+
+            // Если сохраняем за "сегодня", также обновляем базу.факт для дашборда
+            const сегодня = new Date().toISOString().split('T')[0];
+            if (датаЗначение === сегодня) {
+                база.факт = { вес, ккал, б: b, ж: j, у: u, шаги, сон, индексСна, заметки };
+            }
+
+            localStorage.setItem('FitTrackerOlegData', JSON.stringify(база));
+            обновитьИнтерфейс();
+            показатьУведомление(`Отчет за ${dateStr} сохранен!`);
+        }
+
+        function сохранитьСиловые() {
+            for (let ключ in база.силовые) {
+                let эл = document.getElementById('сил-' + ключ);
+                if(эл) база.силовые[ключ] = parseInt(эл.value) || 0;
+            }
+            localStorage.setItem('FitTrackerOlegData', JSON.stringify(база));
+            показатьУведомление("Силовые показатели успешно обновлены!");
+        }
+
+        function строитьДиаграмму(б, ж, у) {
+            let ctx = document.getElementById('диаграммаБжу').getContext('2d');
+            if (графикБжу) графикБжу.destroy();
+
+            let данные = [б || 0, ж || 0, у || 0];
+            if (!б && !ж && !у) данные = [1, 1, 1];
+
+            графикБжу = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: данные,
+                        backgroundColor: ['#00ff87', '#00f2fe', '#ff4757'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    cutout: '75%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function сгенерироватьТекстОтчета() {
+            let бжуСтрока = база.факт.б ? `${база.факт.ккал} ккал (Б: ${база.факт.б}г, Ж: ${база.факт.ж}г, У: ${база.факт.у}г)` : `${база.факт.ккал} ккал`;
+            let текст = `📊 ФАКТ И ПРОГРЕСС ЗА ДЕНЬ:\nТекущий вес: ${база.факт.вес} кг (Цель: 85 кг)\n\n🍗 ПИТАНИЕ:\nФакт КБЖУ: ${бжуСтрока} \n[План: ${база.план.ккал} ккал]\n\n😴 МОНИТОРИНГ СНА:\nВремя сна: ${база.факт.сон} ч [План: ${база.план.сон} ч]\nОценка качества: ${база.факт.индексСна || 3}/5\n\n🏃 АКТИВНОСТЬ:\nШаги за сутки: ${база.факт.шаги} из ${база.план.шаги}`;
+
+            let естьСиловые = false;
+            let блокСил = `\n\n💪 СИЛОВЫЕ ПОКАЗАТЕЛИ:`;
+            const имена = {
+                жим: "Жим штанги лежа", присед: "Приседания со штангой", тяга: "Становая тяга",
+                гант: "Жим гантелей", нижн: "Тяга нижнего блока", пояс: "Тяга блока к поясу",
+                верх: "Тяга верхнего блока", арм: "Армейский жим стоя", брус: "Отжимания на брусьях", биц: "Бицепс"
+            };
+
+            for(let к in имена) {
+                if(база.силовые[к+'В'] > 0) {
+                    естьСиловые = true;
+                    блокСил += `\n* ${имена[к]}: ${база.силовые[к+'В']} кг × ${база.силовые[к+'П']}`;
+                }
+            }
+            if(естьСиловые) текст += блокСил;
+            if(база.факт.заметки && база.факт.заметки.trim().length > 0) {
+                текст += `\n\n📝 ЗАМЕТКИ И САМОЧУВСТВИЕ:\n${база.факт.заметки}`;
+            }
+            document.getElementById('блок-отчета').innerText = текст;
+        }
+
+        function скопироватьОтчет() {
+            let текст = document.getElementById('блок-отчета').innerText;
+            navigator.clipboard.writeText(текст).then(() => {
+                показатьУведомление("Отчет скопирован в буфер обмена!");
+            });
+        }
+
+        function открытьОблако() { document.getElementById('окно-облака').classList.add('открыта'); }
+        function закрытьОблако() { document.getElementById('окно-облака').classList.remove('открыта'); }
+    </script>
+</body>
+</html>
