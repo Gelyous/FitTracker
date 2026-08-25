@@ -643,6 +643,18 @@
             </div>
         </div>
 
+        <div id="вкл-прогресс" class="вкладка-контент">
+            <div class="стекло-карта">
+                <div class="заголовок-карты"><i class="fa-solid fa-arrow-trend-up"></i> План на следующую тренировку</div>
+                <p style="font-size: 0.85rem; color: var(--текст-затененный); margin-bottom: 15px;">
+                    Автоматический разбор ваших силовых показателей: цель — прибавить минимум +2.5 кг в каждом упражнении на следующей тренировке.
+                </p>
+                <div id="список-прогресса" style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Заполняется автоматически через JavaScript -->
+                </div>
+            </div>
+        </div>
+
         <div id="вкл-отчет" class="вкладка-контент">
             <div class="стекло-карта">
                 <div class="заголовок-карты"><i class="fa-solid fa-file-export"></i> Экспорт отчета ИИ-Тренеру</div>
@@ -720,6 +732,7 @@
         <button class="пункт-меню актив" onclick="переключитьВкладку('дашборд')"><i class="fa-solid fa-chart-simple"></i>Обзор</button>
         <button class="пункт-меню" onclick="переключитьВкладку('ввод')"><i class="fa-solid fa-plus"></i>Ввод</button>
         <button class="пункт-меню" onclick="переключитьВкладку('силовые')"><i class="fa-solid fa-dumbbell"></i>Сила</button>
+        <button class="пункт-меню" onclick="переключитьВкладку('прогресс')"><i class="fa-solid fa-arrow-trend-up"></i>Прогресс</button>
         <button class="пункт-меню" onclick="переключитьВкладку('отчет')"><i class="fa-solid fa-share-nodes"></i>Отчет</button>
         <button class="пункт-меню" onclick="переключитьВкладку('история')"><i class="fa-solid fa-clock-rotate-left"></i>История</button>
         <button class="пункт-меню" onclick="переключитьВкладку('план')"><i class="fa-solid fa-gear"></i>План</button>
@@ -733,6 +746,8 @@
             история: [],
             облакоИд: "OLEG-" + Math.random().toString(36).substr(2, 6).toUpperCase()
         };
+
+        const ШАГ_ПРОГРЕССА_ВЕС = 2.5;
 
         let графикБжу = null;
         let выбраннаяКартинкаBase64 = null;
@@ -1059,6 +1074,57 @@
             строитьДиаграмму(база.факт.б, база.факт.ж, база.факт.у);
             сгенерироватьТекстОтчета();
             отобразитьИсторию();
+            сгенерироватьПланТренировки();
+        }
+
+        function сгенерироватьПланТренировки() {
+            const контейнер = document.getElementById('список-прогресса');
+            if (!контейнер) return;
+
+            const имена = {
+                жим: "Жим штанги лежа", присед: "Приседания со штангой", тяга: "Становая тяга",
+                гант: "Жим гантелей", нижн: "Тяга нижнего блока", пояс: "Тяга блока к поясу",
+                верх: "Тяга верхнего блока", арм: "Армейский жим стоя", брус: "Отжимания на брусьях", биц: "Сгибания на бицепс"
+            };
+
+            let html = '';
+            let естьДанные = false;
+
+            for (let к in имена) {
+                const вес = база.силовые[к + 'В'] || 0;
+                const повт = база.силовые[к + 'П'] || 0;
+
+                if (вес <= 0 && повт <= 0) continue;
+                естьДанные = true;
+
+                let цельТекст;
+                if (вес > 0) {
+                    const целевойВес = Math.round((вес + ШАГ_ПРОГРЕССА_ВЕС) * 10) / 10;
+                    цельТекст = `${целевойВес} кг × ${повт}`;
+                } else {
+                    цельТекст = `${вес} кг × ${повт + 1}`;
+                }
+
+                html += `
+                    <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--граница); border-radius: 12px; padding: 12px 15px; display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-weight:700; font-size:0.95rem;">${имена[к]}</div>
+                            <div style="font-size:0.8rem; color:var(--текст-затененный); margin-top:2px;">Сейчас: ${вес} кг × ${повт}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:0.7rem; color:var(--неон-голубой); text-transform:uppercase; letter-spacing:0.5px;">Цель</div>
+                            <div style="font-weight:800; color:var(--неон-зеленый); font-size:1.05rem;"><i class="fa-solid fa-arrow-up-right-dots"></i> ${цельТекст}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (!естьДанные) {
+                контейнер.innerHTML = '<div style="color:var(--текст-затененный); text-align:center; padding:20px;">Заполните силовые показатели, чтобы получить план прогрессии.</div>';
+                return;
+            }
+
+            контейнер.innerHTML = html;
         }
 
         function отобразитьИсторию() {
@@ -1161,6 +1227,7 @@
             
             if(имяВкладки === 'отчет') сгенерироватьТекстОтчета();
             if(имяВкладки === 'история') отобразитьИсторию();
+            if(имяВкладки === 'прогресс') сгенерироватьПланТренировки();
         }
 
         function сохранитьПлан() {
@@ -1265,6 +1332,7 @@
                 if(эл) база.силовые[ключ] = parseInt(эл.value) || 0;
             }
             localStorage.setItem('FitTrackerOlegData', JSON.stringify(база));
+            обновитьИнтерфейс();
             показатьУведомление("Силовые показатели успешно обновлены!");
         }
 
